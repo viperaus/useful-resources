@@ -1,0 +1,188 @@
+# This is the sshd server system-wide configuration file.  See
+# sshd_config(5) for more information.
+
+# The strategy used for options in the default sshd_config shipped with
+# OpenSSH is to specify options with their default value where
+# possible, but leave them commented.  Uncommented options override the
+# default value.
+
+Include /etc/ssh/sshd_config.d/*.conf
+
+Protocol 2
+
+#Port 22
+#AddressFamily any
+#ListenAddress 0.0.0.0
+#ListenAddress ::
+
+#### Crypto ####
+
+# Supported HostKey algorithms by order of preference.
+#https://infosec.mozilla.org/guidelines/openssh#modern-openssh-67
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+
+# Ciphers and keying
+#RekeyLimit default none
+
+# explicitly define cryptography algorithms to avoid the use of weak algorithms
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+HostKeyAlgorithms rsa-sha2-512,rsa-sha2-256,ssh-ed25519
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
+
+# short moduli should be deactivated before enabling the use of diffie-hellman-group-exchange-sha256
+# see this link for more details: https://github.com/k4yt3x/sshd_config#deactivating-short-diffie-hellman-moduli
+#KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256
+
+##### Logging #####
+#SyslogFacility AUTH
+
+# LogLevel VERBOSE logs user's key fingerprint on login. Needed to 
+# have a clear audit track of which key was using to log in.
+LogLevel VERBOSE
+
+##### Authentication #####
+
+#StrictModes yes
+#MaxSessions 10
+
+#Setting the LoginGraceTime parameter to a low number will minimize the risk of 
+#successful brute force attacks to the SSH server
+LoginGraceTime 20
+
+# prevent root from being logged in via SSH
+PermitRootLogin no
+
+# set maximum authenticaion retries to prevent brute force attacks
+MaxAuthTries 3
+
+# enable pubkey authentication
+PubkeyAuthentication yes
+
+AuthenticationMethods publickey
+
+# Expect .ssh/authorized_keys2 to be disregarded by default in future.
+#AuthorizedKeysFile	.ssh/authorized_keys .ssh/authorized_keys2
+#AuthorizedPrincipalsFile none
+#AuthorizedKeysCommand none
+#AuthorizedKeysCommandUser nobody
+
+# For this to work you will also need host keys in /etc/ssh/ssh_known_hosts
+#HostbasedAuthentication no
+# Change to yes if you don't trust ~/.ssh/known_hosts for
+# HostbasedAuthentication
+#IgnoreUserKnownHosts no
+# Don't read the user's ~/.rhosts and ~/.shosts files
+#IgnoreRhosts yes
+
+# To disable tunneled clear text passwords, change to no here!
+PasswordAuthentication no
+
+# disallow connecting using empty passwords
+PermitEmptyPasswords no
+
+# Change to yes to enable challenge-response passwords (beware issues with
+# some PAM modules and threads)
+# challenge-response authentication backend it not configured by default
+# therefore, it is set to "no" by default to avoid the use of an unconfigured backend
+ChallengeResponseAuthentication no
+
+# Kerberos options
+#KerberosAuthentication no
+#KerberosOrLocalPasswd yes
+#KerberosTicketCleanup yes
+#KerberosGetAFSToken no
+
+# GSSAPI options
+#GSSAPIAuthentication no
+#GSSAPICleanupCredentials yes
+#GSSAPIStrictAcceptorCheck yes
+#GSSAPIKeyExchange no
+
+# Set this to 'yes' to enable PAM authentication, account processing,
+# and session processing. If this is enabled, PAM authentication will
+# be allowed through the ChallengeResponseAuthentication and
+# PasswordAuthentication.  Depending on your PAM configuration,
+# PAM authentication via ChallengeResponseAuthentication may bypass
+# the setting of "PermitRootLogin without-password".
+# If you just want the PAM account and session checks to run without
+# PAM authentication, then enable this but set PasswordAuthentication
+# and ChallengeResponseAuthentication to 'no'.
+
+# PAM authentication enabled to make password authentication available
+# remove this if password authentication is not needed
+UsePAM yes
+
+# disallow ssh-agent forwarding to prevent lateral movement
+AllowAgentForwarding no
+
+# prevent TCP ports from being forwarded over SSH tunnels
+# **please be aware that disabling TCP forwarding does not prevent port forwarding**
+# any user with an interactive login shell can spin up his/her own instance of sshd
+AllowTcpForwarding no
+
+# disallow remote hosts from connecting to forwarded ports
+# i.e. forwarded ports are forced to bind to 127.0.0.1 instad of 0.0.0.0
+GatewayPorts no
+
+# disable X11 forwarding since it is not necessary
+X11Forwarding no
+#X11DisplayOffset 10
+#X11UseLocalhost yes
+
+#PermitTTY yes
+PrintMotd no
+#PrintLastLog yes
+TCPKeepAlive no
+#PermitUserEnvironment no
+Compression delayed
+ClientAliveInterval 300
+ClientAliveCountMax 2
+#UseDNS no
+#PidFile /var/run/sshd.pid
+#ChrootDirectory none
+#VersionAddendum none
+
+# prevent tun device forwarding
+#PermitTunnel no
+
+# prevent StreamLocal (Unix-domain socket) forwarding
+AllowStreamLocalForwarding no
+
+# disables all forwarding features
+# overrides all other forwarding switches
+DisableForwarding yes
+
+
+# no default banner path
+#Banner none
+
+# Allow client to pass locale environment variables
+#AcceptEnv LANG LC_*
+
+# Auditing
+# 
+# Log sftp level file access (read/write/etc.) that would 
+# not be easily logged otherwise
+
+Subsystem sftp /usr/lib/openssh/sftp-server -f AUTHPRIV -l INFO
+
+# Anti-DoS
+#
+# Random early drop can be enabled by specifying the three 
+# colon separated values “start:rate:full” (e.g. "10:30:60").
+# sshd(8) will refuse connection attempts with a probability
+# of “rate/100” (30%) if there are currently “start” (10)
+# unauthenticated connections. The probability increases
+# linearly and all connection attempts are refused if the
+# number of unauthenticated connections reaches “full” (60).
+MaxStartups 10:30:60
+
+# Example of overriding settings on a per-user basis
+#Match User anoncvs
+#	X11Forwarding no
+#	AllowTcpForwarding no
+#	PermitTTY no
+#	ForceCommand cvs server
